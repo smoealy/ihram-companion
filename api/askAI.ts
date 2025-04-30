@@ -1,16 +1,17 @@
-import { OpenAI } from "openai";
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const { messages } = await req.body;
+    const { messages } = req.body;
 
     const systemPrompt = `
 You are Ihram AI, a warm, respectful, and spiritual guide trained to help Muslims prepare for Hajj and Umrah.
@@ -25,17 +26,18 @@ You help users:
 Keep your answers short, sincere, and rooted in Islamic values. Always assume the user's intention is pure and sincere.
 `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
       messages: [
-        { role: "system", content: systemPrompt },
-        ...messages
+        { role: 'system', content: systemPrompt },
+        ...messages,
       ]
     });
 
-    return res.status(200).json({ reply: completion.choices[0].message.content });
-  } catch (error) {
-    console.error("API ERROR:", error);
-    return res.status(500).json({ error: "A server error occurred." });
+    const reply = response.choices[0].message?.content ?? 'Sorry, no response.';
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error('API ERROR:', err);
+    return res.status(500).json({ error: 'A server error occurred.' });
   }
 }
