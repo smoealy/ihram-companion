@@ -1,19 +1,16 @@
 import { OpenAI } from "openai";
-import { logAIInteraction } from "@/firebase/logInteraction"; // Adjust path as needed
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-export async function POST(req: Request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
-      status: 500,
-    });
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages } = await req.body;
 
     const systemPrompt = `
 You are Ihram AI, a warm, respectful, and spiritual guide trained to help Muslims prepare for Hajj and Umrah.
@@ -32,26 +29,13 @@ Keep your answers short, sincere, and rooted in Islamic values. Always assume th
       model: "gpt-4",
       messages: [
         { role: "system", content: systemPrompt },
-        ...messages,
-      ],
+        ...messages
+      ]
     });
 
-    const reply = completion.choices[0].message.content;
-
-    // Log interaction to Firebase
-    await logAIInteraction(
-      messages[messages.length - 1].content,
-      reply,
-      0 // token count
-    );
-
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-    });
-  } catch (err) {
-    console.error("Chat error:", err);
-    return new Response(JSON.stringify({ error: "Server error occurred" }), {
-      status: 500,
-    });
+    return res.status(200).json({ reply: completion.choices[0].message.content });
+  } catch (error) {
+    console.error("API ERROR:", error);
+    return res.status(500).json({ error: "A server error occurred." });
   }
 }
