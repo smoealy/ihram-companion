@@ -1,9 +1,12 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/askAI.ts", "use": "@vercel/node" }
+    { "src": "api/*.ts", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/askAI", "dest": "api/askAI.ts" }
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.ts"
+    }
   ]
 }
