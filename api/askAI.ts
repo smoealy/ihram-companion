@@ -1,44 +1,55 @@
-import { OpenAI } from "openai";
-import { logAIInteraction } from "@/firebase/logInteraction";
+import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(req: Request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return new Response(
-      JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+export const config = {
+  runtime: "edge"
+};
+
+export default async function handler(req: Request) {
+  if (!openai.apiKey) {
+    return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const messages = body.messages;
 
     const systemPrompt = `
-You are Ihram AI, a respectful and warm assistant that helps Muslims plan and prepare for Hajj and Umrah.
-Keep answers concise, spiritual, and simple.
+You are Ihram AI, a warm, respectful, and spiritual guide trained to help Muslims prepare for Hajj and Umrah.
+
+You help users:
+- Understand rituals, visas, and packing for pilgrimage
+- Learn about Ihram Token (a halal cryptocurrency)
+- Track token vesting and savings toward their journey
+- Recommend ways to earn, redeem, or donate tokens
+- Share relevant duas, Sunnah, and reminders
+
+Keep your answers short, sincere, and rooted in Islamic values. Always assume the user's intention is pure and sincere.
 `;
 
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     });
 
-    const reply = completion.choices[0].message.content;
+    const reply = response.choices[0].message.content;
 
-    await logAIInteraction(messages[messages.length - 1].content, reply, 0);
+    return new Response(JSON.stringify({ reply }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
 
-    return new Response(
-      JSON.stringify({ reply }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (err: any) {
-    console.error("askAI error:", err.message || err);
-    return new Response(
-      JSON.stringify({ error: "A server error occurred. Please try again." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+  } catch (err) {
+    console.error("API Error:", err);
+    return new Response(JSON.stringify({ error: "A server error occurred" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
