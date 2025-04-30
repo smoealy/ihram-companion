@@ -1,26 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "src/api/askAI.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "framework": "vite",
   "routes": [
     {
       "src": "/api/askAI",
-      "dest": "src/api/askAI.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "api/askAI.js"
     }
   ]
 }
