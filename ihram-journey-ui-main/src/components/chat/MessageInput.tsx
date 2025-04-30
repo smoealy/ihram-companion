@@ -1,46 +1,47 @@
-
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Send } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading }) => {
-  const [message, setMessage] = useState('');
+const MessageInput = ({ onSendMessage, isLoading }: MessageInputProps) => {
+  const [inputValue, setInputValue] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() && !isLoading) {
-      onSendMessage(message);
-      setMessage('');
+  const handleSubmit = () => {
+    if (!inputValue.trim() || isLoading) return;
+    onSendMessage(inputValue.trim());
+    setInputValue('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
   return (
-    <form 
-      onSubmit={handleSubmit}
-      className="border-t border-gray-200 p-3 bg-white flex items-end gap-2"
-    >
-      <Textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type your question about Umrah..."
-        className="resize-none min-h-[50px] max-h-32"
+    <div className="flex items-center p-4 border-t bg-white">
+      <input
+        type="text"
+        className="flex-1 border border-gray-300 rounded-l px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        placeholder="Type your question…"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
         disabled={isLoading}
       />
-      <Button 
-        type="submit" 
-        size="icon" 
-        disabled={!message.trim() || isLoading}
-        className="bg-ihram-green h-10 w-10"
+      <button
+        onClick={handleSubmit}
+        disabled={isLoading}
+        className={`px-4 py-2 rounded-r text-white ${
+          isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+        }`}
       >
-        <Send className="h-5 w-5" />
-      </Button>
-    </form>
+        Send
+      </button>
+    </div>
   );
 };
 
