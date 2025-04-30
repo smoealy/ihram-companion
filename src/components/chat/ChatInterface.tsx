@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import MessageInput from './MessageInput';
-import { logAIInteraction } from '../firebase/logInteraction';
-
+import { logAIInteraction } from '@/firebase/logInteraction';
 type MessageType = 'user' | 'ai';
 
 interface Message {
