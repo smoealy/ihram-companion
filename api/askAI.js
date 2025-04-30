@@ -1,19 +1,18 @@
+// api/askAI.js
 import { OpenAI } from "openai";
-import { logAIInteraction } from "../../../firebase/logInteraction"; // ✅ Firebase logger
+import { logAIInteraction } from "../firebase/logInteraction.js"; // update import path if needed
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(req) {
+export default async function handler(req, res) {
   if (!process.env.OPENAI_API_KEY) {
-    return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
-      status: 500,
-    });
+    return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages } = req.body;
 
     const systemPrompt = `
 You are Ihram AI, a warm, respectful, and spiritual guide trained to help Muslims prepare for Hajj and Umrah.
@@ -35,16 +34,11 @@ Keep your answers short, sincere, and rooted in Islamic values. Always assume th
 
     const reply = completion.choices[0].message.content;
 
-    // ✅ Log interaction to Firebase
-    await logAIInteraction(messages[messages.length - 1].content, reply, 0); // token count = 0 for now
+    await logAIInteraction(messages[messages.length - 1].content, reply, 0);
 
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-    });
+    res.status(200).json({ reply });
   } catch (err) {
     console.error("Chat error:", err);
-    return new Response(JSON.stringify({ error: "Something went wrong." }), {
-      status: 500,
-    });
+    res.status(500).json({ error: "Something went wrong." });
   }
 }
