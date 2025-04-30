@@ -1,12 +1,4 @@
 {
   "version": 2,
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "routes": [
-    {
-      "src": "/api/askAI",
-      "dest": "api/askAI.js"
-    }
-  ]
+  "framework": "vite"
 }
