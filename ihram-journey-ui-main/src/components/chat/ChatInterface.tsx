@@ -1,6 +1,6 @@
-
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MessageInput from './MessageInput';
+import { logAIInteraction } from '../firebase/logInteraction';
 
 type MessageType = 'user' | 'ai';
 
@@ -8,6 +8,7 @@ interface Message {
   id: string;
   content: string;
   type: MessageType;
+  interactionId?: string;
 }
 
 const ChatInterface = () => {
@@ -19,54 +20,73 @@ const ChatInterface = () => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSendMessage = (content: string) => {
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (content: string) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
       type: 'user',
     };
-    
-    setMessages([...messages, newMessage]);
+
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
     setIsLoading(true);
-    
-    // Simulate AI response after a delay
-    setTimeout(() => {
+
+    try {
+      const res = await fetch('/api/askAI', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content })) }),
+      });
+
+      const data = await res.json();
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'll help you plan your Umrah journey. What specific guidance do you need today?",
+        content: data.reply || 'Sorry, there was an issue generating a response.',
         type: 'ai',
       };
-      
-      setMessages(prevMessages => [...prevMessages, aiResponse]);
+
+      const interactionId = await logAIInteraction(content, aiResponse.content, 0);
+      aiResponse.interactionId = interactionId;
+
+      setMessages([...updatedMessages, aiResponse]);
+    } catch (err) {
+      console.error('Error calling /api/askAI:', err);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-ihram-offwhite">
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={message.type === 'user' ? 'user-message' : 'ai-message'}
+          <div
+            key={message.id}
+            className={message.type === 'user' ? 'user-message text-right' : 'ai-message text-left'}
           >
-            {message.content}
+            <div className={`inline-block px-4 py-2 rounded-lg ${message.type === 'user' ? 'bg-white' : 'bg-green-100'}`}>
+              <p>{message.content}</p>
+            </div>
           </div>
         ))}
-        
         {isLoading && (
-          <div className="ai-message">
+          <div className="ai-message text-left mt-2">
             <div className="flex space-x-2 items-center">
-              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light"></div>
-              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light delay-200"></div>
-              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light delay-400"></div>
+              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light" />
+              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light delay-200" />
+              <div className="w-2 h-2 rounded-full bg-ihram-green animate-pulse-light delay-400" />
               <span className="ml-2 text-sm text-gray-500">Ihram Companion is thinking...</span>
             </div>
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
-      
       <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
     </div>
   );
